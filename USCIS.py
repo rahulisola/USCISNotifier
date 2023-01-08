@@ -42,21 +42,35 @@ def sendSMS(number, message):
 	client.send_sms(number, message)
 
 def GetCaseStatus(ReceiptNo):
+	CaseStatus = dict()
+	CaseStatus['ReceiptNo'] = ReceiptNo
 	url = 'https://egov.uscis.gov/casestatus/mycasestatus.do'
 	payload = {'completedActionsCurrentPage': '0', 'upcomingActionsCurrentPage': '0', 'appReceiptNum': ReceiptNo}
-	r = requests.post(url, data=payload)
-	tree = html.fromstring(r.content)
-
-	CaseStatus = dict()
-	CaseStatus['status'] = tree.xpath('//h1')[0].text_content()
-	CaseStatus['ReceiptNo'] = ReceiptNo
-	CaseStatus['Message'] = tree.xpath('//div[@class="rows text-center"]/p')[0].text_content()
-	if CaseStatus['Message']:
-		CaseStatus['ReceiptDate'] = re.search('.*(On|As of) ([A-Za-z]* \d+, \d+), ', CaseStatus['Message']).group(2)
-		CaseStatus['ReceiptType'] = re.search('.*(Form ([^, ]*),|new card) .*', CaseStatus['Message']).group(1)
+	r = requests.post(url, data=payload, verify=False)
+	if r.status_code == 200:
+		try:
+			tree = html.fromstring(r.content)
+			CaseStatus['status'] = tree.xpath('//h1')[0].text_content()
+			CaseStatus['Message'] = tree.xpath('//div[@class="rows text-center"]/p')[0].text_content()
+			if CaseStatus['Message']:
+				try:
+					CaseStatus['ReceiptDate'] = re.search('.*(On|As of) ([A-Za-z]* \d+, \d+), ', CaseStatus['Message']).group(2)
+				except:
+					CaseStatus['ReceiptDate'] = 'Not found'
+				CaseStatus['ReceiptType'] = re.search('.*(Form ([^, ]*),|new card) .*', CaseStatus['Message']).group(1)
+			else:
+				CaseStatus['ReceiptDate'] = 'Not found'
+				CaseStatus['ReceiptType'] = 'Not found'
+		except IndexError:
+			CaseStatus['status'] = 'Error'
+			CaseStatus['Message'] = str(r.status_code) + ': Parse Error, website down?'
+			CaseStatus['ReceiptDate'] = 'Error'
+			CaseStatus['ReceiptType'] = 'Error'
 	else:
-		CaseStatus['ReceiptDate'] = 'Not found'
-		CaseStatus['ReceiptType'] = 'Not found'
+		CaseStatus['status'] = 'Error'
+		CaseStatus['Message'] = str(r.status_code)
+		CaseStatus['ReceiptDate'] = 'Error'
+		CaseStatus['ReceiptType'] = 'Error'
 	return CaseStatus
 		
 if __name__ == '__main__':
