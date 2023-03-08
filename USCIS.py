@@ -57,7 +57,10 @@ def GetCaseStatus(ReceiptNo):
 					CaseStatus['ReceiptDate'] = re.search('.*(On|As of) ([A-Za-z]* \d+, \d+), ', CaseStatus['Message']).group(2)
 				except:
 					CaseStatus['ReceiptDate'] = 'Not found'
-				CaseStatus['ReceiptType'] = re.search('.*(Form ([^, ]*),|new card) .*', CaseStatus['Message']).group(1)
+				try:
+					CaseStatus['ReceiptType'] = re.search('.*(Form ([^, ]*),|new card) .*', CaseStatus['Message']).group(1)
+				except:
+					CaseStatus['ReceiptType'] = 'Not found'
 			else:
 				CaseStatus['ReceiptDate'] = 'Not found'
 				CaseStatus['ReceiptType'] = 'Not found'
